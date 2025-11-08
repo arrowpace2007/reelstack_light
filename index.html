@@ -225,7 +225,10 @@
     <main id="landing-page">
       <header class="fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-center">
         <h1 class="font-serif text-2xl font-bold tracking-wider">reelstack</h1>
-        <button class="btn btn-dark" data-action="open-dashboard">Sign Up</button>
+        <nav class="flex gap-6 items-center">
+          <button class="text-lg font-medium hover:text-gray-600 transition" data-action="close-dashboard">Home</button>
+          <button class="text-lg font-medium hover:text-gray-600 transition" data-action="open-dashboard">Dashboard</button>
+        </nav>
       </header>
 
       <section class="relative min-h-screen flex flex-col items-center justify-center text-center pt-24 px-4 overflow-hidden">
@@ -365,7 +368,10 @@
     <div id="dashboard-page" class="hidden min-h-screen bg-gray-50">
       <header class="p-6 flex justify-between items-center border-b bg-white">
         <h1 class="font-serif text-2xl font-bold tracking-wider">reelstack</h1>
-        <button class="text-gray-600 hover:text-black" data-action="close-dashboard">&larr; Back to Home</button>
+        <nav class="flex gap-6 items-center">
+          <button class="text-lg font-medium hover:text-gray-600 transition" data-action="close-dashboard">Home</button>
+          <button class="text-lg font-medium hover:text-gray-600 transition" data-action="open-dashboard">Dashboard</button>
+        </nav>
       </header>
       
       <section class="p-6 md:p-10">
