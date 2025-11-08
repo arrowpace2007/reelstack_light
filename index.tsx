@@ -1,6 +1,5 @@
-import { GoogleGenerativeAI } from "@google/genai";
-
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  const { GoogleGenAI } = await import("@google/genai");
   // --- Custom Cursor Logic ---
   const cursorDot = document.querySelector<HTMLElement>(".cursor-dot");
   const cursorOutline = document.querySelector<HTMLElement>(".cursor-outline");
@@ -106,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initialize Gemini AI
   const API_KEY = (process.env as any).GEMINI_API_KEY;
-  const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
+  const genAI = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
 
   const generateTags = async (title: string, description: string, url: string): Promise<string[]> => {
     if (!genAI) {
@@ -114,7 +113,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
       const prompt = `Based on this video information, generate 5-7 relevant tags/keywords (single words or short phrases):
 Title: ${title}
 Description: ${description}
@@ -122,9 +120,15 @@ URL: ${url}
 
 Return only the tags as a comma-separated list, nothing else.`;
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const result = await genAI.models.generateContent({
+        model: "gemini-2.0-flash-exp",
+        contents: [{
+          role: "user",
+          parts: [{ text: prompt }]
+        }]
+      });
+      
+      const text = result.response ? await result.response.text() : result.text;
       
       const tags = text.split(',').map(tag => tag.trim().toLowerCase()).filter(tag => tag.length > 0);
       return tags.slice(0, 7);
