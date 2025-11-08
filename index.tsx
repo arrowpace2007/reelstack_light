@@ -111,18 +111,38 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.warn("⚠️ Gemini API key not found. AI-powered tagging will use fallback tags. Add VITE_GEMINI_API_KEY to your environment variables.");
   }
 
-  const generateTags = async (title: string, description: string, url: string): Promise<string[]> => {
+  const generateTags = async (title: string, description: string, url: string, platform: string): Promise<string[]> => {
     if (!genAI) {
-      return ["video", "content"];
+      // Better fallback tags based on platform
+      const platformTags: Record<string, string[]> = {
+        'YouTube': ['youtube', 'video', 'entertainment'],
+        'Instagram': ['instagram', 'reel', 'social'],
+        'TikTok': ['tiktok', 'short-form', 'viral'],
+      };
+      return platformTags[platform] || ['video', 'content', 'media'];
     }
 
     try {
-      const prompt = `Based on this video information, generate 5-7 relevant tags/keywords (single words or short phrases):
-Title: ${title}
-Description: ${description}
-URL: ${url}
+      // Enhanced prompt that works even with limited metadata
+      const isShortForm = url.includes('/shorts/') || url.includes('/reel/') || url.includes('tiktok.com');
+      const videoType = isShortForm ? 'short-form video' : 'video';
+      
+      const prompt = `Analyze this ${videoType} and generate 5-7 highly relevant, specific tags/keywords.
 
-Return only the tags as a comma-separated list, nothing else.`;
+Video Information:
+- Title: ${title}
+- Description: ${description}
+- URL: ${url}
+- Platform: ${platform}
+
+Instructions:
+1. Extract key topics, themes, or subjects from the title and description
+2. If metadata is limited (like "YouTube Short" or generic titles), analyze the URL for clues
+3. Include content category tags (e.g., tutorial, comedy, music, gaming, cooking, etc.)
+4. Add relevant platform-specific tags (e.g., short-form, viral, trending)
+5. Be specific and descriptive rather than generic
+
+Return ONLY the tags as a comma-separated list, nothing else.`;
 
       const result = await genAI.models.generateContent({
         model: "gemini-2.0-flash-exp",
@@ -134,12 +154,11 @@ Return only the tags as a comma-separated list, nothing else.`;
       
       const text = result.text || "";
       
-      const tags = text.split(',').map(tag => tag.trim().toLowerCase()).filter(tag => tag.length > 0);
-      return tags.slice(0, 7);
+      const tags = text.split(',').map(tag => tag.trim().toLowerCase()).filter(tag => tag.length > 0 && tag.length < 30);
+      return tags.slice(0, 7).length > 0 ? tags.slice(0, 7) : [platform.toLowerCase(), 'video', 'content'];
     } catch (error) {
       console.error("Error generating tags:", error);
-      const platform = url.includes('youtube') ? 'youtube' : url.includes('instagram') ? 'instagram' : url.includes('tiktok') ? 'tiktok' : 'video';
-      return [platform, "content", "media"];
+      return [platform.toLowerCase(), 'video', 'content'];
     }
   };
 
@@ -243,42 +262,107 @@ Return only the tags as a comma-separated list, nothing else.`;
     });
   };
 
+  const extractYouTubeVideoId = (url: string): string | null => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) return match[1];
+    }
+    return null;
+  };
+
   const fetchVideoMetadata = async (url: string): Promise<Omit<Video, 'id' | 'url' | 'tags' | 'savedAt'>> => {
+      // Detect platform type
+      const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+      const isYouTubeShort = url.includes('/shorts/');
+      const isInstagram = url.includes('instagram.com');
+      const isInstagramReel = url.includes('/reel/');
+      const isTikTok = url.includes('tiktok.com');
+      
+      // Try YouTube oEmbed for YouTube videos (works better than noembed for Shorts)
+      if (isYouTube) {
+        try {
+          const response = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+          if (response.ok) {
+            const data = await response.json();
+            
+            // Extract video ID for better thumbnail
+            const videoId = extractYouTubeVideoId(url);
+            const thumbnail = videoId 
+              ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+              : data.thumbnail_url || data.thumbnail;
+            
+            return {
+              title: data.title || (isYouTubeShort ? "YouTube Short" : "YouTube Video"),
+              description: data.title || "No description available",
+              thumbnail: thumbnail,
+              platform: "YouTube",
+              author: data.author_name || undefined,
+            };
+          }
+        } catch (error) {
+          console.log("YouTube oEmbed failed, trying fallback...");
+        }
+      }
+      
+      // Try noembed for other platforms
       try {
         const response = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`);
         const data = await response.json();
 
-        if (!response.ok || data.error) {
-          throw new Error('Using placeholder data');
+        if (response.ok && !data.error) {
+          return {
+            title: data.title || "Untitled Video",
+            description: data.description || data.title || "No description available",
+            thumbnail: data.thumbnail_url || `https://source.unsplash.com/random/400x225?sig=${Math.random()}`,
+            platform: data.provider_name || "Web",
+            author: data.author_name || data.author_url || undefined,
+          };
         }
-
-        return {
-          title: data.title || "Untitled Video",
-          description: data.description || data.title || "No description available",
-          thumbnail: data.thumbnail_url || `https://source.unsplash.com/random/400x225?sig=${Math.random()}`,
-          platform: data.provider_name || "Web",
-          author: data.author_name || data.author_url || undefined,
-        };
       } catch (error) {
-        let platform = "Web";
-        let title = "Untitled Video";
-        if (url.includes('youtube.com') || url.includes('youtu.be')) { 
-          platform = "YouTube"; 
-          title = "YouTube Video"; 
-        } else if (url.includes('instagram.com')) { 
-          platform = "Instagram"; 
-          title = "Instagram Reel"; 
-        } else if (url.includes('tiktok.com')) { 
-          platform = "TikTok"; 
-          title = "TikTok Video"; 
-        }
-        return { 
-          title, 
-          description: "No description available",
-          thumbnail: `https://source.unsplash.com/random/400x225?sig=${Math.random()}`, 
-          platform,
-        };
+        console.log("noembed failed, using platform-specific fallback...");
       }
+      
+      // Fallback with better defaults
+      let platform = "Web";
+      let title = "Untitled Video";
+      let description = "No description available";
+      
+      if (isYouTube) { 
+        platform = "YouTube"; 
+        title = isYouTubeShort ? "YouTube Short" : "YouTube Video";
+        description = "Short-form video content";
+        
+        // Try to get thumbnail from video ID
+        const videoId = extractYouTubeVideoId(url);
+        if (videoId) {
+          return {
+            title,
+            description,
+            thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+            platform,
+          };
+        }
+      } else if (isInstagram) { 
+        platform = "Instagram"; 
+        title = isInstagramReel ? "Instagram Reel" : "Instagram Video";
+        description = "Instagram content";
+      } else if (isTikTok) { 
+        platform = "TikTok"; 
+        title = "TikTok Video";
+        description = "Short-form TikTok content";
+      }
+      
+      return { 
+        title, 
+        description,
+        thumbnail: `https://source.unsplash.com/random/400x225?sig=${Math.random()}`, 
+        platform,
+      };
     };
 
   const addVideo = async (url: string) => {
@@ -294,7 +378,7 @@ Return only the tags as a comma-separated list, nothing else.`;
         saveButton.textContent = "Generating tags...";
       }
       
-      const tags = await generateTags(videoData.title, videoData.description, url);
+      const tags = await generateTags(videoData.title, videoData.description, url, videoData.platform);
       
       const now = new Date();
       const savedAt = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });

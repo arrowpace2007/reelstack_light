@@ -6,6 +6,13 @@ Reelstack is a personal video library application that allows users to save and 
 **Current State**: Fully functional frontend application running on Vite + TypeScript
 
 ## Recent Changes
+- **2024-11-08 (Evening)**: Enhanced short-form video support
+  - Implemented YouTube oEmbed API for better Shorts metadata extraction
+  - Added YouTube video ID extraction for high-quality thumbnails
+  - Enhanced Gemini AI prompts for more precise tag generation
+  - Improved platform-specific fallback metadata (Shorts, Reels, TikTok)
+  - Updated TypeScript config to include vite/client types
+  
 - **2024-11-08**: Imported from GitHub and configured for Replit environment
   - Changed server port from 3000 to 5000 for Replit compatibility
   - Added `allowedHosts: ['all']` to vite.config.ts to allow Replit proxy access
@@ -21,7 +28,10 @@ Reelstack is a personal video library application that allows users to save and 
 - **Styling**: TailwindCSS (via CDN)
 - **AI Integration**: Google Gemini API (@google/genai)
 - **Storage**: LocalStorage for video data persistence
-- **Metadata**: noembed.com API for video metadata fetching
+- **Metadata**: 
+  - YouTube oEmbed API for YouTube videos (including Shorts)
+  - noembed.com API for other platforms
+  - Custom video ID extraction for thumbnail generation
 
 ### File Structure
 ```
