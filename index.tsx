@@ -82,6 +82,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // --- Dashboard Functionality ---
   const addVideoForm = document.getElementById("add-video-form");
   const videoUrlInput = document.getElementById("video-url-input") as HTMLInputElement;
+  const videoNotesInput = document.getElementById("video-notes-input") as HTMLTextAreaElement;
   const videoGrid = document.getElementById("video-grid");
   const saveButton = addVideoForm?.querySelector('button[type="submit"]') as HTMLButtonElement;
   const sortDropdown = document.getElementById("sort-videos") as HTMLSelectElement;
@@ -97,6 +98,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     tags: string[];
     author?: string;
     savedAt: string;
+    notes?: string;
   };
 
   let videos: Video[] = JSON.parse(localStorage.getItem("reelstack_videos") || "[]");
@@ -227,6 +229,9 @@ Return ONLY the tags as a comma-separated list, nothing else.`;
           : video.description || 'No description available';
         
         const escapedTitle = video.title.replace(/"/g, '&quot;');
+        const escapedNotes = video.notes 
+          ? video.notes.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;')
+          : '';
         
         videoCard.innerHTML = `
             <div class="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200">
@@ -239,6 +244,13 @@ Return ONLY the tags as a comma-separated list, nothing else.`;
                 <h4 class="font-bold text-lg mb-2 line-clamp-2 text-gray-900" title="${escapedTitle}">${video.title}</h4>
                 ${video.author ? `<p class="text-sm text-gray-600 mb-2 flex items-center"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"></path></svg>${video.author}</p>` : ''}
                 <p class="text-sm text-gray-700 mb-4 leading-relaxed">${truncatedDesc}</p>
+                ${escapedNotes ? `<div class="mb-4 p-3 bg-gradient-to-r from-purple-50 to-pink-50 border-l-4 border-purple-400 rounded-lg">
+                    <p class="text-xs font-semibold text-purple-700 mb-1 flex items-center">
+                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg>
+                        Your Notes
+                    </p>
+                    <p class="text-sm text-gray-800 leading-relaxed">${escapedNotes}</p>
+                </div>` : ''}
                 <div class="flex flex-wrap gap-2 mb-4">
                     ${tagsHTML}
                 </div>
@@ -365,7 +377,7 @@ Return ONLY the tags as a comma-separated list, nothing else.`;
       };
     };
 
-  const addVideo = async (url: string) => {
+  const addVideo = async (url: string, notes?: string) => {
     if (saveButton) {
         saveButton.disabled = true;
         saveButton.textContent = "Analyzing...";
@@ -388,6 +400,7 @@ Return ONLY the tags as a comma-separated list, nothing else.`;
           url: url,
           savedAt,
           tags,
+          notes: notes && notes.trim() ? notes.trim() : undefined,
           ...videoData
       };
       
@@ -400,7 +413,7 @@ Return ONLY the tags as a comma-separated list, nothing else.`;
     } finally {
       if (saveButton) {
           saveButton.disabled = false;
-          saveButton.textContent = "Save Reel";
+          saveButton.textContent = "Save Video";
       }
     }
   };
@@ -409,8 +422,12 @@ Return ONLY the tags as a comma-separated list, nothing else.`;
       addVideoForm.addEventListener('submit', async (e) => {
           e.preventDefault();
           if (videoUrlInput && videoUrlInput.value) {
-              await addVideo(videoUrlInput.value);
+              const notes = videoNotesInput?.value || '';
+              await addVideo(videoUrlInput.value, notes);
               videoUrlInput.value = "";
+              if (videoNotesInput) {
+                videoNotesInput.value = "";
+              }
           }
       });
   }
