@@ -104,8 +104,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   let searchQuery = "";
 
   // Initialize Gemini AI
-  const API_KEY = (process.env as any).GEMINI_API_KEY;
+  const API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
   const genAI = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
+  
+  if (!API_KEY) {
+    console.warn("⚠️ Gemini API key not found. AI-powered tagging will use fallback tags. Add VITE_GEMINI_API_KEY to your environment variables.");
+  }
 
   const generateTags = async (title: string, description: string, url: string): Promise<string[]> => {
     if (!genAI) {
@@ -128,7 +132,7 @@ Return only the tags as a comma-separated list, nothing else.`;
         }]
       });
       
-      const text = result.response ? await result.response.text() : result.text;
+      const text = result.text || "";
       
       const tags = text.split(',').map(tag => tag.trim().toLowerCase()).filter(tag => tag.length > 0);
       return tags.slice(0, 7);
@@ -191,41 +195,48 @@ Return only the tags as a comma-separated list, nothing else.`;
     
     sortedVideos.forEach(video => {
         const videoCard = document.createElement('div');
-        videoCard.className = 'bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow';
+        videoCard.className = 'bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1';
         
-        const tagsHTML = video.tags.map(tag => 
-          `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">${tag}</span>`
-        ).join(' ');
+        const tagsHTML = video.tags && video.tags.length > 0 
+          ? video.tags.map(tag => 
+              `<span class="inline-block bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium px-3 py-1 rounded-full">${tag}</span>`
+            ).join(' ')
+          : '<span class="inline-block bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">No tags</span>';
         
-        const truncatedDesc = video.description.length > 120 
-          ? video.description.substring(0, 120) + '...' 
-          : video.description;
+        const truncatedDesc = video.description && video.description.length > 100
+          ? video.description.substring(0, 100) + '...' 
+          : video.description || 'No description available';
+        
+        const escapedTitle = video.title.replace(/"/g, '&quot;');
         
         videoCard.innerHTML = `
-            <div class="relative aspect-video bg-gray-200">
-                <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover">
-                <div class="absolute top-2 right-2">
-                    <span class="bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">${video.platform}</span>
+            <div class="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200">
+                <img src="${video.thumbnail}" alt="${escapedTitle}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/400x225?text=No+Thumbnail'">
+                <div class="absolute top-3 right-3">
+                    <span class="bg-black bg-opacity-80 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full">${video.platform}</span>
                 </div>
             </div>
-            <div class="p-4">
-                <h4 class="font-bold text-lg mb-2 line-clamp-2" title="${video.title}">${video.title}</h4>
-                ${video.author ? `<p class="text-sm text-gray-600 mb-2">by ${video.author}</p>` : ''}
-                <p class="text-sm text-gray-700 mb-3">${truncatedDesc}</p>
-                <div class="flex flex-wrap gap-1 mb-3">
+            <div class="p-5">
+                <h4 class="font-bold text-lg mb-2 line-clamp-2 text-gray-900" title="${escapedTitle}">${video.title}</h4>
+                ${video.author ? `<p class="text-sm text-gray-600 mb-2 flex items-center"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"></path></svg>${video.author}</p>` : ''}
+                <p class="text-sm text-gray-700 mb-4 leading-relaxed">${truncatedDesc}</p>
+                <div class="flex flex-wrap gap-2 mb-4">
                     ${tagsHTML}
                 </div>
                 <div class="flex gap-2">
                     <a href="${video.url}" target="_blank" rel="noopener noreferrer" 
-                       class="flex-1 text-center bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
-                        Watch Video
+                       class="flex-1 text-center bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg">
+                        <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"></path></svg>
+                        Watch
                     </a>
                     <button onclick="window.deleteVideo(${video.id})" 
-                            class="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-2 rounded-lg transition">
-                        Delete
+                            class="bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg">
+                        <svg class="w-4 h-4 inline" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
                     </button>
                 </div>
-                <p class="text-xs text-gray-400 mt-2">Saved ${video.savedAt}</p>
+                <div class="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
+                    <span class="flex items-center"><svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>Saved ${video.savedAt}</span>
+                </div>
             </div>
         `;
         videoGrid.appendChild(videoCard);

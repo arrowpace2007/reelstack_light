@@ -365,33 +365,47 @@
       </footer>
     </main>
     
-    <div id="dashboard-page" class="hidden min-h-screen bg-gray-50">
-      <header class="p-6 flex justify-between items-center border-b bg-white">
+    <div id="dashboard-page" class="hidden min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <header class="p-6 flex justify-between items-center border-b bg-white shadow-sm sticky top-0 z-40">
         <h1 class="font-serif text-2xl font-bold tracking-wider">reelstack</h1>
         <nav class="flex gap-6 items-center">
           <button class="text-lg font-medium hover:text-gray-600 transition" data-action="close-dashboard">Home</button>
-          <button class="text-lg font-medium hover:text-gray-600 transition" data-action="open-dashboard">Dashboard</button>
+          <button class="text-lg font-medium text-orange-600 transition" data-action="open-dashboard">Dashboard</button>
         </nav>
       </header>
       
       <section class="p-6 md:p-10">
-        <div class="max-w-4xl mx-auto">
-          <h2 class="font-serif text-4xl font-bold">Your Dashboard</h2>
-          <p class="text-gray-600 mt-2">Save a new reel or video to your collection.</p>
+        <div class="max-w-7xl mx-auto">
+          <div class="mb-10">
+            <h2 class="font-serif text-5xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Your Video Library</h2>
+            <p class="text-gray-600 mt-3 text-lg">Organize your inspiration. Powered by AI.</p>
+          </div>
           
-          <form id="add-video-form" class="mt-8 flex gap-4">
-            <input type="url" id="video-url-input" placeholder="Paste a video link from YouTube, Instagram, etc." required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-color focus:outline-none transition">
-            <button type="submit" class="btn btn-accent flex-shrink-0">Save Reel</button>
-          </form>
+          <div class="bg-white rounded-2xl shadow-xl p-8 mb-10">
+            <h3 class="font-serif text-2xl font-bold mb-4 flex items-center">
+              <svg class="w-6 h-6 mr-2 text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"></path></svg>
+              Add New Video
+            </h3>
+            <form id="add-video-form" class="flex flex-col sm:flex-row gap-4">
+              <input type="url" id="video-url-input" placeholder="Paste a video link from YouTube, Instagram, TikTok, etc." required class="flex-1 px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-orange-400 focus:outline-none transition text-base">
+              <button type="submit" class="btn btn-accent text-base font-semibold px-8 py-4 shadow-lg hover:shadow-xl whitespace-nowrap">
+                <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"></path></svg>
+                Save Video
+              </button>
+            </form>
+          </div>
           
-          <div class="mt-12">
-             <div class="flex justify-between items-center mb-6">
-                <h3 class="font-serif text-3xl font-bold">Your Collection</h3>
-                <div class="flex items-center gap-2">
-                    <label for="sort-videos" class="text-sm text-gray-600">Sort by:</label>
-                    <select id="sort-videos" class="border-gray-300 rounded-md text-sm focus:ring-accent-color focus:border-accent-color">
-                        <option value="date_desc">Date Added (Newest)</option>
-                        <option value="date_asc">Date Added (Oldest)</option>
+          <div>
+             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
+                <h3 class="font-serif text-3xl font-bold flex items-center">
+                  <svg class="w-7 h-7 mr-2 text-purple-500" fill="currentColor" viewBox="0 0 20 20"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"></path></svg>
+                  Your Collection
+                </h3>
+                <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-lg shadow-sm">
+                    <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M3 3a1 1 0 000 2h11a1 1 0 100-2H3zM3 7a1 1 0 000 2h7a1 1 0 100-2H3zM3 11a1 1 0 100 2h4a1 1 0 100-2H3zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z"></path></svg>
+                    <select id="sort-videos" class="border-0 text-sm font-medium text-gray-700 focus:ring-0 focus:outline-none cursor-pointer">
+                        <option value="date_desc">Newest First</option>
+                        <option value="date_asc">Oldest First</option>
                         <option value="title_asc">Title (A-Z)</option>
                         <option value="title_desc">Title (Z-A)</option>
                         <option value="platform_asc">Platform (A-Z)</option>
@@ -399,16 +413,19 @@
                 </div>
             </div>
             
-            <div class="mb-6">
-                <input 
-                    type="text" 
-                    id="search-input" 
-                    placeholder="Search videos by title, description, tags, or platform..." 
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-color focus:outline-none transition"
-                />
+            <div class="mb-8">
+                <div class="relative">
+                  <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path></svg>
+                  <input 
+                      type="text" 
+                      id="search-input" 
+                      placeholder="Search by title, description, tags, or platform..." 
+                      class="w-full pl-12 pr-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-purple-400 focus:outline-none transition text-base shadow-sm"
+                  />
+                </div>
             </div>
             
-            <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               <!-- Video cards will be injected here -->
             </div>
           </div>

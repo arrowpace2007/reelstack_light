@@ -46,12 +46,15 @@ Reelstack is a personal video library application that allows users to save and 
 ### Configuration
 - **Server**: Runs on port 5000 (0.0.0.0)
 - **HMR**: Configured for Replit proxy (WSS on port 443)
-- **Environment**: GEMINI_API_KEY required in .env.local
+- **Environment**: VITE_GEMINI_API_KEY required in .env.local or as environment variable
 
 ### API Integration
-The app uses Google's Gemini API for AI features. Users need to:
-1. Get a Gemini API key from Google AI Studio
-2. Add it to .env.local as `GEMINI_API_KEY=your_key_here`
+The app uses Google's Gemini API for AI-powered tag generation. Users need to:
+1. Get a Gemini API key from Google AI Studio (https://ai.google.dev/)
+2. Add it as a secret with key name `VITE_GEMINI_API_KEY`
+3. Or add it to .env.local as `VITE_GEMINI_API_KEY=your_key_here`
+
+If no API key is provided, the app will use fallback tags based on the platform (YouTube, Instagram, TikTok).
 
 ### Development
 - **Start Dev Server**: `npm run dev`
