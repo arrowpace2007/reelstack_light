@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
         port: 5000,
         host: '0.0.0.0',
         strictPort: true,
-        allowedHosts: ['all'],
+        allowedHosts: ['.replit.dev', '.repl.co', 'localhost'],
         hmr: {
           clientPort: 443,
           protocol: 'wss'
