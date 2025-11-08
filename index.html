@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reelstack - Remember every reel.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" src="/index.tsx"></script>
+    <style>
+      :root {
+        --bg-color: #ffffff;
+        --text-color: #1a1a1a;
+        --accent-color: #ff4500;
+        --accent-color-dark: #e03e00;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        background-color: #fdfdff;
+        color: var(--text-color);
+        font-family: "Inter", sans-serif;
+        cursor: none;
+        overflow-x: hidden;
+      }
+      .font-serif {
+        font-family: "Playfair Display", serif;
+      }
+      .cursor-dot,
+      .cursor-outline {
+        pointer-events: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        z-index: 9999;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out, transform 0.2s ease-in-out;
+      }
+      .cursor-dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--accent-color);
+      }
+      .cursor-outline {
+        width: 40px;
+        height: 40px;
+        border: 2px solid var(--accent-color);
+      }
+      body:hover .cursor-dot,
+      body:hover .cursor-outline {
+        opacity: 1;
+      }
+      .cursor-outline.grow {
+        transform: translate(-50%, -50%) scale(1.5);
+        background-color: var(--accent-color);
+        opacity: 0.5;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 12px 28px;
+        border-radius: 999px;
+        font-weight: 500;
+        transition: transform 0.2s ease-out, background-color 0.2s ease-out;
+      }
+      .btn:hover {
+        transform: scale(1.05);
+      }
+      .btn-dark {
+        background-color: var(--text-color);
+        color: var(--bg-color);
+      }
+      .btn-accent {
+        background-color: var(--accent-color);
+        color: white;
+      }
+      .btn-accent:hover {
+        background-color: var(--accent-color-dark);
+      }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+      }
+      .reveal.active {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      
+      /* Manifesto Styles */
+      .drop-cap {
+        font-size: 4.5rem; /* 72px */
+        float: left;
+        margin-right: 0.75rem;
+        line-height: 0.8;
+        margin-top: 0.5rem;
+      }
+      .manifesto-no-list span {
+        color: var(--accent-color);
+        font-weight: 700;
+      }
+      
+      /* Frosted Glass Effect */
+      .frosted-glass {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      }
+
+      /* Hero Floating Cards Animation */
+      .hero-visuals {
+        perspective: 1000px;
+      }
+      .floating-card {
+        position: absolute;
+        transform-style: preserve-3d;
+        animation: float 10s ease-in-out infinite;
+      }
+      @keyframes float {
+        0% { transform: translateY(0px) rotateX(0deg) rotateY(0deg); }
+        50% { transform: translateY(-25px) rotateX(5deg) rotateY(-5deg); }
+        100% { transform: translateY(0px) rotateX(0deg) rotateY(0deg); }
+      }
+
+      /* Testimonial Section */
+      .testimonial-bubble {
+        position: absolute;
+        padding: 1rem 1.5rem;
+        border-radius: 1.5rem;
+        background: rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+        text-align: left;
+        animation: testimonial-float 12s ease-in-out infinite;
+      }
+      .testimonial-bubble img {
+        position: absolute;
+        bottom: -20px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      }
+      @keyframes testimonial-float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-15px); }
+        100% { transform: translateY(0px); }
+      }
+
+      /* Animated Mesh Gradient Background */
+      .blob {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(120px);
+        opacity: 0.7;
+      }
+      .blob1 {
+        width: 400px; height: 400px; background: #FFC0CB; /* soft pink */
+        top: 10%; left: 10%;
+        animation: move1 15s infinite alternate;
+      }
+      .blob2 {
+        width: 300px; height: 300px; background: #FAFAD2; /* pale yellow */
+        top: 60%; left: 20%;
+        animation: move2 18s infinite alternate-reverse;
+      }
+      .blob3 {
+        width: 350px; height: 350px; background: #DDA0DD; /* light purple */
+        top: 20%; left: 70%;
+        animation: move3 20s infinite alternate;
+      }
+      .blob4 {
+        width: 300px; height: 300px; background: #ADD8E6; /* light blue */
+        top: 50%; left: 50%;
+        animation: move4 16s infinite alternate-reverse;
+      }
+      @keyframes move1 {
+        from { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+        to { transform: translate(50%, 50%) rotate(180deg) scale(1.2); }
+      }
+      @keyframes move2 {
+        from { transform: translate(0, 0) rotate(0deg) scale(1.1); }
+        to { transform: translate(-30%, 40%) rotate(270deg) scale(1); }
+      }
+      @keyframes move3 {
+        from { transform: translate(0, 0) rotate(0deg) scale(1); }
+        to { transform: translate(40%, -60%) rotate(360deg) scale(1.3); }
+      }
+      @keyframes move4 {
+        from { transform: translate(0, 0) rotate(0deg) scale(0.9); }
+        to { transform: translate(60%, 20%) rotate(-270deg) scale(1.1); }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0"
+  }
+}
+</script>
+</head>
+  <body class="antialiased">
+    <div class="cursor-dot"></div>
+    <div class="cursor-outline"></div>
+    
+    <div class="fixed inset-0 -z-50 overflow-hidden">
+        <div class="blob blob1"></div>
+        <div class="blob blob2"></div>
+        <div class="blob blob3"></div>
+        <div class="blob blob4"></div>
+    </div>
+   
+    <main id="landing-page">
+      <header class="fixed top-0 left-0 right-0 z-50 p-6 flex justify-between items-center">
+        <h1 class="font-serif text-2xl font-bold tracking-wider">reelstack</h1>
+        <button class="btn btn-dark" data-action="open-dashboard">Sign Up</button>
+      </header>
+
+      <section class="relative min-h-screen flex flex-col items-center justify-center text-center pt-24 px-4 overflow-hidden">
+        <div class="relative z-10 max-w-4xl mx-auto">
+          <h2 class="font-serif text-6xl md:text-8xl font-bold reveal">Remember every reel.</h2>
+          <h2 class="font-serif text-6xl md:text-8xl font-bold mt-2 reveal" style="transition-delay: 200ms;">Organize nothing.</h2>
+          <p class="mt-8 max-w-2xl mx-auto text-lg text-gray-700 reveal" style="transition-delay: 400ms;">
+            The ultimate library for your video mind. Just save it. Artificial intelligence takes care of the rest.
+          </p>
+          <div class="mt-10 reveal" style="transition-delay: 600ms;">
+            <button class="btn btn-accent text-lg" data-action="open-dashboard">Get Started for Free</button>
+          </div>
+        </div>
+
+        <!-- Floating Cards Visual - Opacity increased for visibility -->
+        <div class="hero-visuals absolute inset-0 -z-10 opacity-20">
+            <div class="floating-card rounded-2xl frosted-glass" style="width: 220px; height: 120px; top: 20%; left: 15%; animation-delay: -2s;"></div>
+            <div class="floating-card rounded-2xl frosted-glass" style="width: 280px; height: 160px; top: 30%; left: 65%; animation-delay: 0s;"></div>
+            <div class="floating-card rounded-2xl frosted-glass" style="width: 180px; height: 100px; top: 65%; left: 10%; animation-delay: -5s;"></div>
+            <div class="floating-card rounded-2xl frosted-glass" style="width: 240px; height: 140px; top: 70%; left: 75%; animation-delay: -3s;"></div>
+        </div>
+
+      </section>
+
+      <section class="py-24 px-4 relative overflow-hidden">
+        <div class="max-w-3xl mx-auto text-center reveal">
+          <h3 class="text-sm uppercase tracking-widest text-gray-500">Our Manifesto</h3>
+          <div class="mt-12 text-left text-xl md:text-2xl text-gray-800 font-serif leading-relaxed space-y-8">
+            <p>
+              <span class="drop-cap font-serif">I</span>n a time when endless feeds compete for our attention, when every scroll is a bid for our data, our inspiration becomes fleeting. The gems we discover are lost to the algorithm, replaced by the next trending sound.
+            </p>
+            <p>
+              Our creative minds have been taken captive – by social approval systems, by disappearing stories, and by platforms designed to keep us scrolling, not saving. Our best ideas are scattered across forgotten likes and browser tabs.
+            </p>
+            <p>
+              What should have never been lost is now yours again. <strong class="font-bold">We promise:</strong>
+            </p>
+          </div>
+        </div>
+        <div class="max-w-3xl mx-auto mt-12 reveal" style="transition-delay: 200ms;">
+          <ul class="manifesto-no-list text-2xl md:text-3xl font-serif space-y-4 text-center text-gray-800">
+            <li><span>NO</span> endless scrolling</li>
+            <li><span>NO</span> algorithmic feeds</li>
+            <li><span>NO</span> invasive tracking</li>
+            <li><span>NO</span> disappearing content</li>
+            <li><span>NO</span> social pressure</li>
+            <li><span>NO</span> ads</li>
+          </ul>
+        </div>
+        <div class="text-center mt-20 reveal" style="transition-delay: 400ms; z-index: 10; position: relative;">
+            <h2 class="font-serif text-4xl md:text-5xl">Welcome to <span class="font-bold tracking-wider">reelstack</span></h2>
+            <h2 class="font-serif text-4xl md:text-5xl">...your new library.</h2>
+        </div>
+      </section>
+
+      <section class="py-20 px-4">
+        <div class="text-center max-w-3xl mx-auto">
+           <h3 class="font-serif text-4xl md:text-5xl font-bold reveal">Folders are dead. This is your personal video search engine.</h3>
+           <p class="mt-6 text-lg text-gray-700 reveal">
+             Stop wasting time organizing. Reelstack's powerful search finds any video you've saved in an instant, based on content, creator, or even spoken words.
+           </p>
+        </div>
+        <div class="mt-12 max-w-5xl mx-auto p-4 rounded-2xl shadow-2xl reveal frosted-glass">
+            <div class="w-full h-80 bg-gray-100/50 rounded-lg flex items-center justify-center">
+                <p class="text-gray-500">Your saved reels will appear here.</p>
+            </div>
+        </div>
+      </section>
+
+      <section class="py-20 px-4">
+        <div class="text-center mb-16">
+          <h3 class="font-serif text-4xl md:text-5xl font-bold reveal">A treasure trove of ideas, inspiration & references.</h3>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+          <div class="frosted-glass p-8 rounded-2xl reveal">
+            <h4 class="font-serif text-2xl font-bold mb-3">One-click Saving</h4>
+            <p class="text-gray-700">Save any reel or video from any platform with a simple copy-paste. No more lost links.</p>
+          </div>
+          <div class="frosted-glass p-8 rounded-2xl reveal" style="transition-delay: 200ms;">
+            <h4 class="font-serif text-2xl font-bold mb-3">Smart Tagging</h4>
+            <p class="text-gray-700">Our AI automatically analyzes and tags your videos, making them instantly searchable and discoverable.</p>
+          </div>
+          <div class="frosted-glass p-8 rounded-2xl reveal">
+            <h4 class="font-serif text-2xl font-bold mb-3">Watch without Distractions</h4>
+            <p class="text-gray-700">Enjoy your saved content in a clean, minimalist player, free from ads, comments, and other distractions.</p>
+          </div>
+          <div class="frosted-glass p-8 rounded-2xl reveal" style="transition-delay: 200ms;">
+            <h4 class="font-serif text-2xl font-bold mb-3">Instant Collections</h4>
+            <p class="text-gray-700">Reelstack intelligently groups related videos, helping you discover patterns and connections in your saved content.</p>
+          </div>
+        </div>
+      </section>
+      
+      <section class="py-24 px-4 relative text-center overflow-hidden">
+        <h2 class="font-serif text-4xl md:text-6xl font-bold reveal text-gray-800">Trusted by creators<br>& curators everywhere.</h2>
+        <div class="relative mt-8 max-w-6xl mx-auto min-h-[500px]">
+            
+            <div class="testimonial-bubble w-72 reveal" style="top: 10%; left: 5%; animation-delay: -2s;">
+                <p>"Finally, a place for all the reels I thought I'd lost! This is a game changer. 🔥"</p>
+                <img src="https://i.pravatar.cc/40?img=1" alt="User Avatar" style="right: 20px;">
+            </div>
+
+            <div class="testimonial-bubble w-80 reveal" style="top: 30%; right: 2%; animation-delay: -5s;">
+                <p>"The best tool for my creative workflow. I save references and ideas here daily. It's the service I am the happiest to use."</p>
+                <img src="https://i.pravatar.cc/40?img=2" alt="User Avatar" style="left: 20px;">
+            </div>
+
+            <div class="testimonial-bubble w-64 reveal" style="top: 60%; left: 15%; animation-delay: -8s;">
+                <p>"Reelstack is immensely underrated. One of my favorite apps for sure."</p>
+                <img src="https://i.pravatar.cc/40?img=3" alt="User Avatar" style="right: 20px;">
+            </div>
+            
+            <div class="testimonial-bubble w-96 reveal" style="top: 75%; right: 10%; animation-delay: -3s;">
+                <p>"It’s literally a place for you to materialize your mind! You throw any type of media there and it organizes the content automatically."</p>
+                <img src="https://i.pravatar.cc/40?img=4" alt="User Avatar" style="left: 20px;">
+            </div>
+
+        </div>
+      </section>
+
+      <section class="py-20 px-4 text-center text-gray-800">
+        <div class="max-w-4xl mx-auto">
+          <h3 class="font-serif text-4xl md:text-5xl font-bold reveal">For visual minds of all kinds.</h3>
+          <p class="mt-6 text-lg opacity-90 reveal">Stop letting great content slip away. Build your personal library of inspiration, knowledge, and entertainment.</p>
+          <div class="mt-10 reveal">
+            <button class="btn btn-dark text-lg" data-action="open-dashboard">Start Building Your Reelstack</button>
+          </div>
+        </div>
+      </section>
+      
+      <footer class="text-center py-12 px-4">
+        <p class="font-serif text-2xl font-bold tracking-wider">reelstack</p>
+        <p class="text-gray-500 mt-2">&copy; 2024 Reelstack. Your personal video library.</p>
+      </footer>
+    </main>
+    
+    <div id="dashboard-page" class="hidden min-h-screen bg-gray-50">
+      <header class="p-6 flex justify-between items-center border-b bg-white">
+        <h1 class="font-serif text-2xl font-bold tracking-wider">reelstack</h1>
+        <button class="text-gray-600 hover:text-black" data-action="close-dashboard">&larr; Back to Home</button>
+      </header>
+      
+      <section class="p-6 md:p-10">
+        <div class="max-w-4xl mx-auto">
+          <h2 class="font-serif text-4xl font-bold">Your Dashboard</h2>
+          <p class="text-gray-600 mt-2">Save a new reel or video to your collection.</p>
+          
+          <form id="add-video-form" class="mt-8 flex gap-4">
+            <input type="url" id="video-url-input" placeholder="Paste a video link from YouTube, Instagram, etc." required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-color focus:outline-none transition">
+            <button type="submit" class="btn btn-accent flex-shrink-0">Save Reel</button>
+          </form>
+          
+          <div class="mt-12">
+             <div class="flex justify-between items-center mb-6">
+                <h3 class="font-serif text-3xl font-bold">Your Collection</h3>
+                <div class="flex items-center gap-2">
+                    <label for="sort-videos" class="text-sm text-gray-600">Sort by:</label>
+                    <select id="sort-videos" class="border-gray-300 rounded-md text-sm focus:ring-accent-color focus:border-accent-color">
+                        <option value="date_desc">Date Added (Newest)</option>
+                        <option value="date_asc">Date Added (Oldest)</option>
+                        <option value="title_asc">Title (A-Z)</option>
+                        <option value="title_desc">Title (Z-A)</option>
+                        <option value="platform_asc">Platform (A-Z)</option>
+                    </select>
+                </div>
+            </div>
+            <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              <!-- Video cards will be injected here -->
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </body>
+</html>
