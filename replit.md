@@ -8,9 +8,11 @@ Reelstack is a personal video library application that allows users to save and 
 ## Recent Changes
 - **2024-11-08**: Imported from GitHub and configured for Replit environment
   - Changed server port from 3000 to 5000 for Replit compatibility
-  - Configured HMR (Hot Module Reload) for proper proxying
+  - Added `allowedHosts: ['all']` to vite.config.ts to allow Replit proxy access
+  - Configured HMR (Hot Module Reload) for proper proxying (WSS on port 443)
   - Added .env.local file for GEMINI_API_KEY configuration
-  - Set up development workflow
+  - Updated .gitignore to exclude environment files
+  - Set up development workflow and deployment configuration
 
 ## Project Architecture
 
