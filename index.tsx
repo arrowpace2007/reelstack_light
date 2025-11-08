@@ -1,3 +1,5 @@
+import { GoogleGenerativeAI } from "@google/genai";
+
 document.addEventListener("DOMContentLoaded", () => {
   // --- Custom Cursor Logic ---
   const cursorDot = document.querySelector<HTMLElement>(".cursor-dot");
@@ -84,27 +86,85 @@ document.addEventListener("DOMContentLoaded", () => {
   const videoGrid = document.getElementById("video-grid");
   const saveButton = addVideoForm?.querySelector('button[type="submit"]') as HTMLButtonElement;
   const sortDropdown = document.getElementById("sort-videos") as HTMLSelectElement;
+  const searchInput = document.getElementById("search-input") as HTMLInputElement;
 
   type Video = {
     id: number;
     url: string;
     title: string;
+    description: string;
     thumbnail: string;
     platform: string;
+    tags: string[];
+    author?: string;
+    savedAt: string;
   };
 
   let videos: Video[] = JSON.parse(localStorage.getItem("reelstack_videos") || "[]");
   let currentSort = "date_desc";
+  let searchQuery = "";
+
+  // Initialize Gemini AI
+  const API_KEY = (process.env as any).GEMINI_API_KEY;
+  const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
+
+  const generateTags = async (title: string, description: string, url: string): Promise<string[]> => {
+    if (!genAI) {
+      return ["video", "content"];
+    }
+
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const prompt = `Based on this video information, generate 5-7 relevant tags/keywords (single words or short phrases):
+Title: ${title}
+Description: ${description}
+URL: ${url}
+
+Return only the tags as a comma-separated list, nothing else.`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      const tags = text.split(',').map(tag => tag.trim().toLowerCase()).filter(tag => tag.length > 0);
+      return tags.slice(0, 7);
+    } catch (error) {
+      console.error("Error generating tags:", error);
+      const platform = url.includes('youtube') ? 'youtube' : url.includes('instagram') ? 'instagram' : url.includes('tiktok') ? 'tiktok' : 'video';
+      return [platform, "content", "media"];
+    }
+  };
+
+  const deleteVideo = (id: number) => {
+    if (confirm("Are you sure you want to delete this video?")) {
+      videos = videos.filter(v => v.id !== id);
+      localStorage.setItem("reelstack_videos", JSON.stringify(videos));
+      renderVideos();
+    }
+  };
 
   const renderVideos = () => {
     if (!videoGrid) return;
     videoGrid.innerHTML = "";
-    if (videos.length === 0) {
-        videoGrid.innerHTML = `<p class="text-gray-500 col-span-full text-center">Your saved videos will appear here. Paste a link above to get started!</p>`;
+    
+    let filteredVideos = videos;
+    
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filteredVideos = videos.filter(video => 
+        video.title.toLowerCase().includes(query) ||
+        video.description.toLowerCase().includes(query) ||
+        video.tags.some(tag => tag.toLowerCase().includes(query)) ||
+        video.platform.toLowerCase().includes(query)
+      );
+    }
+    
+    if (filteredVideos.length === 0) {
+        videoGrid.innerHTML = `<p class="text-gray-500 col-span-full text-center">${searchQuery ? 'No videos found matching your search.' : 'Your saved videos will appear here. Paste a link above to get started!'}</p>`;
         return;
     }
     
-    let sortedVideos = [...videos];
+    let sortedVideos = [...filteredVideos];
 
     switch (currentSort) {
         case 'date_asc':
@@ -127,68 +187,122 @@ document.addEventListener("DOMContentLoaded", () => {
     
     sortedVideos.forEach(video => {
         const videoCard = document.createElement('div');
-        videoCard.className = 'bg-white rounded-lg shadow-md overflow-hidden group';
+        videoCard.className = 'bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow';
+        
+        const tagsHTML = video.tags.map(tag => 
+          `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">${tag}</span>`
+        ).join(' ');
+        
+        const truncatedDesc = video.description.length > 120 
+          ? video.description.substring(0, 120) + '...' 
+          : video.description;
+        
         videoCard.innerHTML = `
             <div class="relative aspect-video bg-gray-200">
                 <img src="${video.thumbnail}" alt="${video.title}" class="w-full h-full object-cover">
-                <div class="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <a href="${video.url}" target="_blank" rel="noopener noreferrer" class="text-white text-sm bg-black bg-opacity-50 px-3 py-1 rounded-full">Watch on ${video.platform}</a>
+                <div class="absolute top-2 right-2">
+                    <span class="bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">${video.platform}</span>
                 </div>
             </div>
             <div class="p-4">
-                <h4 class="font-bold truncate" title="${video.title}">${video.title}</h4>
+                <h4 class="font-bold text-lg mb-2 line-clamp-2" title="${video.title}">${video.title}</h4>
+                ${video.author ? `<p class="text-sm text-gray-600 mb-2">by ${video.author}</p>` : ''}
+                <p class="text-sm text-gray-700 mb-3">${truncatedDesc}</p>
+                <div class="flex flex-wrap gap-1 mb-3">
+                    ${tagsHTML}
+                </div>
+                <div class="flex gap-2">
+                    <a href="${video.url}" target="_blank" rel="noopener noreferrer" 
+                       class="flex-1 text-center bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+                        Watch Video
+                    </a>
+                    <button onclick="window.deleteVideo(${video.id})" 
+                            class="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-2 rounded-lg transition">
+                        Delete
+                    </button>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">Saved ${video.savedAt}</p>
             </div>
         `;
         videoGrid.appendChild(videoCard);
     });
   };
 
-  const fetchVideoMetadata = async (url: string): Promise<Omit<Video, 'id' | 'url'>> => {
+  const fetchVideoMetadata = async (url: string): Promise<Omit<Video, 'id' | 'url' | 'tags' | 'savedAt'>> => {
       try {
         const response = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`);
         const data = await response.json();
 
         if (!response.ok || data.error) {
-          console.warn("Could not fetch metadata, using placeholders.", data.error || '');
           throw new Error('Using placeholder data');
         }
 
         return {
           title: data.title || "Untitled Video",
+          description: data.description || data.title || "No description available",
           thumbnail: data.thumbnail_url || `https://source.unsplash.com/random/400x225?sig=${Math.random()}`,
           platform: data.provider_name || "Web",
+          author: data.author_name || data.author_url || undefined,
         };
       } catch (error) {
-        // Fallback to placeholder data generation
         let platform = "Web";
         let title = "Untitled Video";
-        if (url.includes('youtube.com') || url.includes('youtu.be')) { platform = "YouTube"; title = "YouTube Video"; } 
-        else if (url.includes('instagram.com')) { platform = "Instagram"; title = "Instagram Reel"; } 
-        else if (url.includes('tiktok.com')) { platform = "TikTok"; title = "TikTok Video"; }
-        return { title, thumbnail: `https://source.unsplash.com/random/400x225?sig=${Math.random()}`, platform };
+        if (url.includes('youtube.com') || url.includes('youtu.be')) { 
+          platform = "YouTube"; 
+          title = "YouTube Video"; 
+        } else if (url.includes('instagram.com')) { 
+          platform = "Instagram"; 
+          title = "Instagram Reel"; 
+        } else if (url.includes('tiktok.com')) { 
+          platform = "TikTok"; 
+          title = "TikTok Video"; 
+        }
+        return { 
+          title, 
+          description: "No description available",
+          thumbnail: `https://source.unsplash.com/random/400x225?sig=${Math.random()}`, 
+          platform,
+        };
       }
     };
-
 
   const addVideo = async (url: string) => {
     if (saveButton) {
         saveButton.disabled = true;
-        saveButton.textContent = "Saving...";
+        saveButton.textContent = "Analyzing...";
     }
 
-    const videoData = await fetchVideoMetadata(url);
-    const newVideo: Video = {
-        id: Date.now(),
-        url: url,
-        ...videoData
-    };
-    videos.push(newVideo);
-    localStorage.setItem("reelstack_videos", JSON.stringify(videos));
-    renderVideos();
-
-    if (saveButton) {
-        saveButton.disabled = false;
-        saveButton.textContent = "Save Reel";
+    try {
+      const videoData = await fetchVideoMetadata(url);
+      
+      if (saveButton) {
+        saveButton.textContent = "Generating tags...";
+      }
+      
+      const tags = await generateTags(videoData.title, videoData.description, url);
+      
+      const now = new Date();
+      const savedAt = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      
+      const newVideo: Video = {
+          id: Date.now(),
+          url: url,
+          savedAt,
+          tags,
+          ...videoData
+      };
+      
+      videos.push(newVideo);
+      localStorage.setItem("reelstack_videos", JSON.stringify(videos));
+      renderVideos();
+    } catch (error) {
+      alert("Error saving video. Please try again.");
+      console.error(error);
+    } finally {
+      if (saveButton) {
+          saveButton.disabled = false;
+          saveButton.textContent = "Save Reel";
+      }
     }
   };
 
@@ -208,6 +322,16 @@ document.addEventListener("DOMContentLoaded", () => {
           renderVideos();
       });
   }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = (e.target as HTMLInputElement).value;
+      renderVideos();
+    });
+  }
+
+  // Make deleteVideo available globally
+  (window as any).deleteVideo = deleteVideo;
 
   // Initial render
   renderVideos();
