@@ -127,9 +127,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       // Enhanced prompt that works even with limited metadata
       const isShortForm = url.includes('/shorts/') || url.includes('/reel/') || url.includes('tiktok.com');
+      const isInstagramReel = url.includes('instagram.com') && url.includes('/reel/');
       const videoType = isShortForm ? 'short-form video' : 'video';
       
-      const prompt = `Analyze this ${videoType} and generate 5-7 highly relevant, specific tags/keywords.
+      let prompt = `Analyze this ${videoType} and generate 5-7 highly relevant, specific tags/keywords.
 
 Video Information:
 - Title: ${title}
@@ -139,12 +140,30 @@ Video Information:
 
 Instructions:
 1. Extract key topics, themes, or subjects from the title and description
-2. If metadata is limited (like "YouTube Short" or generic titles), analyze the URL for clues
-3. Include content category tags (e.g., tutorial, comedy, music, gaming, cooking, etc.)
-4. Add relevant platform-specific tags (e.g., short-form, viral, trending)
-5. Be specific and descriptive rather than generic
+2. If metadata is limited (like "YouTube Short" or generic titles), analyze the URL for clues`;
 
-Return ONLY the tags as a comma-separated list, nothing else.`;
+      // Special instructions for Instagram Reels since they often have minimal metadata
+      if (isInstagramReel) {
+        prompt += `
+3. For Instagram Reels with limited metadata, infer likely content categories based on common Instagram Reel themes:
+   - Lifestyle content (fashion, beauty, fitness, travel, food, home decor)
+   - Entertainment (dance, comedy, pranks, challenges, trends)
+   - Educational content (tips, tutorials, how-to, life hacks)
+   - Creative content (art, photography, music, DIY)
+   - Inspirational/motivational content
+4. Include specific content category tags (e.g., fashion-tips, cooking-tutorial, dance-challenge, travel-vlog, beauty-routine)
+5. Add Instagram-specific tags (e.g., reels, viral-content, trending, social-media)
+6. Be creative and infer content type from typical Instagram Reel patterns
+7. Focus on lifestyle, entertainment, and visual content categories`;
+      } else {
+        prompt += `
+3. Include content category tags (e.g., tutorial, comedy, music, gaming, cooking, etc.)
+4. Add relevant platform-specific tags (e.g., short-form, viral, trending)`;
+      }
+
+      prompt += `
+5. Be specific and descriptive rather than generic
+6. Return ONLY the tags as a comma-separated list, nothing else.`;
 
       const result = await genAI.models.generateContent({
         model: "gemini-2.0-flash-exp",
@@ -287,6 +306,35 @@ Return ONLY the tags as a comma-separated list, nothing else.`;
     return null;
   };
 
+  const extractInstagramPostId = (url: string): string | null => {
+    // Extract Instagram post/reel ID from various URL formats
+    const patterns = [
+      /instagram\.com\/(?:p|reel)\/([a-zA-Z0-9_-]+)/,
+      /instagram\.com\/reels?\/([a-zA-Z0-9_-]+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) return match[1];
+    }
+    return null;
+  };
+
+  const extractUsernameFromInstagramUrl = (url: string): string | null => {
+    // Try to extract username from URL, but skip path segments like 'reel', 'p', 'reels', 'tv', 'stories'
+    const pathSegmentsToSkip = ['reel', 'reels', 'p', 'tv', 'stories', 'explore'];
+    const match = url.match(/instagram\.com\/([a-zA-Z0-9._]+)\//);
+    
+    if (match && match[1]) {
+      const segment = match[1];
+      // Only return if it's not a reserved path segment
+      if (!pathSegmentsToSkip.includes(segment.toLowerCase())) {
+        return segment;
+      }
+    }
+    return null;
+  };
+
   const fetchVideoMetadata = async (url: string): Promise<Omit<Video, 'id' | 'url' | 'tags' | 'savedAt'>> => {
       // Detect platform type
       const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
@@ -321,7 +369,7 @@ Return ONLY the tags as a comma-separated list, nothing else.`;
         }
       }
       
-      // Try noembed for other platforms
+      // Try noembed for all non-YouTube platforms (Instagram included)
       try {
         const response = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`);
         const data = await response.json();
@@ -339,10 +387,12 @@ Return ONLY the tags as a comma-separated list, nothing else.`;
         console.log("noembed failed, using platform-specific fallback...");
       }
       
-      // Fallback with better defaults
+      // Fallback with better defaults and URL-based extraction
       let platform = "Web";
       let title = "Untitled Video";
       let description = "No description available";
+      let author = undefined;
+      let thumbnail = `https://source.unsplash.com/random/400x225?sig=${Math.random()}`;
       
       if (isYouTube) { 
         platform = "YouTube"; 
@@ -352,28 +402,39 @@ Return ONLY the tags as a comma-separated list, nothing else.`;
         // Try to get thumbnail from video ID
         const videoId = extractYouTubeVideoId(url);
         if (videoId) {
-          return {
-            title,
-            description,
-            thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-            platform,
-          };
+          thumbnail = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
         }
       } else if (isInstagram) { 
         platform = "Instagram"; 
-        title = isInstagramReel ? "Instagram Reel" : "Instagram Video";
-        description = "Instagram content";
+        const postId = extractInstagramPostId(url);
+        const username = extractUsernameFromInstagramUrl(url);
+        
+        // Enhanced fallback for Instagram Reels with extracted info
+        if (isInstagramReel) {
+          title = postId ? `Instagram Reel ${postId.substring(0, 8)}` : "Instagram Reel";
+          description = "Instagram short-form video content";
+        } else {
+          title = postId ? `Instagram Post ${postId.substring(0, 8)}` : "Instagram Post";
+          description = "Instagram content";
+        }
+        
+        author = username ? `@${username}` : undefined;
+        
+        // Use a themed thumbnail for Instagram content
+        thumbnail = `https://source.unsplash.com/random/400x225?social,media,video&sig=${Math.random()}`;
       } else if (isTikTok) { 
         platform = "TikTok"; 
         title = "TikTok Video";
-        description = "Short-form TikTok content";
+        description = "Short-form TikTok video content";
+        thumbnail = `https://source.unsplash.com/random/400x225?video,social&sig=${Math.random()}`;
       }
       
       return { 
         title, 
         description,
-        thumbnail: `https://source.unsplash.com/random/400x225?sig=${Math.random()}`, 
+        thumbnail,
         platform,
+        author,
       };
     };
 
